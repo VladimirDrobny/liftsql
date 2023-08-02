@@ -1,0 +1,10 @@
+[package]
+name = "liftsql"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+postgres = { version = "0.19.5", features = ["with-chrono-0_4"] }
+chrono = "0.4.26"
