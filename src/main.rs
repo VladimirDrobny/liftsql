@@ -151,12 +151,12 @@ impl Tui<'_> {
                 println!("Error printing day: {}", err);
             }
             println!("-----");
-            let inp = Tui::get_user_input("# ");
+            let inp = Tui::get_user_input("Plan (Next/Prev)# ");
             match inp.as_str() {
                 "q" => break,
                 "c" => break,
-                "n" => {println!("Next =>");config.day_id = (config.day_id+1)%(self.plan.len() as i32);},
-                "p" => {println!("Prev <=");config.day_id = (config.day_id-1)%(self.plan.len() as i32);},
+                "n" => {println!("Showing Next:");config.day_id = (config.day_id+1)%(self.plan.len() as i32);},
+                "p" => {println!("Showing Prev:");config.day_id = (config.day_id-1)%(self.plan.len() as i32);},
                 _ => println!("Invalid input."),
             };
 
@@ -288,7 +288,7 @@ impl Tui<'_> {
         if Tui::add_lifts(&mut transaction, new_session_id)? == 0 {
             return Ok(false);
         }
-        if Tui::get_user_input("Log session? ") != "" {
+        if Tui::get_user_input("+ Log session? ([YES]/cancel)") != "" {
             return Ok(false);
         }
         Db::transaction_commit(transaction)?;
@@ -300,8 +300,10 @@ impl Tui<'_> {
         loop {
             if Tui::dialogue_new_lift(transaction, session_id)? {
                 added_lifts += 1;
+            } else {
+                println!("+ ... Lift cancelled.");
             }
-            let inp = Tui::get_user_input("+ --- ? ");
+            let inp = Tui::get_user_input("+ Add more lifts ([YES]/calcel) ? ");
             if inp != "" {
                 break;
             }
@@ -323,15 +325,47 @@ impl Tui<'_> {
 
         println!("+ ... Selected '{}'.", selected_exercise.1);
 
-        let weight = match Tui::get_user_input_float("+ Weight: ", None) {
+        let (weight_default, reps_default, sets_default) = match selected_exercise.0 {
+            5 => {
+                //Chinups
+                (Some(0.0), None, Some(1.0))
+            },
+            6 => {
+                // Clean
+                (None, Some(1.0), Some(1.0))
+            },
+            10 => {
+                // Snatch
+                (None, Some(1.0), Some(1.0))
+            },
+            _ => {
+                // Default
+                (None, Some(5.0), Some(1.0))
+            },
+        };
+
+        let weight_def_str = match weight_default {
+            None => String::new(),
+            Some(f) => format!(" ({})", f).to_string(),
+        };
+        let reps_def_str = match reps_default {
+            None => String::new(),
+            Some(f) => format!(" ({})", f).to_string(),
+        };
+        let sets_def_str = match sets_default {
+            None => String::new(),
+            Some(f) => format!(" ({})", f).to_string(),
+        };
+
+        let weight = match Tui::get_user_input_float(format!("+ Weight{}: ", weight_def_str).as_str(), weight_default) {
             Some(f) => f,
             None => return Ok(false),
         };
-        let reps = match Tui::get_user_input_float("+ Reps (5): ", Some(5.0)) {
+        let reps = match Tui::get_user_input_float(format!("+ Reps{}: ", reps_def_str).as_str(), reps_default) {
             Some(f) => f,
             None => return Ok(false),
         };
-        let sets = match Tui::get_user_input_float("+ Sets (1): ", Some(1.0)) {
+        let sets = match Tui::get_user_input_float(format!("+ Sets{}: ", sets_def_str).as_str(), sets_default) {
             Some(f) => f,
             None => return Ok(false),
         };

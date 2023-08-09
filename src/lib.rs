@@ -54,7 +54,7 @@ impl Db {
         //client.execute("CREATE TABLE comments (id SERIAL, session_id INT NOT NULL, comment_text_id INT NOT NULL, PRIMARY KEY (id));", &[])?;
         //client.execute("CREATE TABLE comment_text(id SERIAL, text TEXT NOT NULL, PRIMARY KEY (id));", &[])?;
 
-        let exercises = ["Squat", "Bench", "Deadlift", "Press", "Chinups", "Clean", "Lat pulldowns", "Front squat"];
+        let exercises = ["Squat", "Bench", "Deadlift", "Press", "Chinups", "Clean", "Lat pulldowns", "Front squat", "Rows", "Snatch"];
         for exercise in exercises {
             client.execute("INSERT INTO exercises (name) values ($1);", &[&exercise])?;
         }
