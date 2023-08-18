@@ -113,7 +113,7 @@ impl Tui<'_> {
             println!("COULDN'T GET LAST SESSION INFO");
         }
 
-        println!("n) New session\np) Show plan\nq) Quit");
+        println!("n) New session\np) Show plan\ng) Get pr\na) Add exercise\nq) Quit");
         loop {
             println!("=====");
             let inp = Tui::get_user_input("$ ");
@@ -131,6 +131,27 @@ impl Tui<'_> {
                 },
                 "p" => {
                     self.dialogue_plan();
+                },
+                "g" => {
+                    match self.dialogue_get_pr() {
+                        Ok(success) => {
+                            if !success {
+                                println!("Getting pr cancelled.");
+                            }
+                        },
+                        Err(_) => println!("ERROR GETTING PR"),
+                    };
+                },
+                "a" => {
+                    match self.dialogue_add_exercise() {
+                        Ok(success) => {
+                            match success {
+                                true => println!("Exercise added."),
+                                false => println!("Exercise add cancelled."),
+                            }
+                        }
+                        Err(_) => println!("ERROR ADDING EXERCISE"),
+                    };
                 },
                 "q" => return,
                 "c" => return,
@@ -421,6 +442,68 @@ impl Tui<'_> {
         }
 
         ret
+    }
+
+    fn dialogue_get_pr(&mut self) -> Result<bool, Error> {
+        let exercises = self.db.select_exercises()?;
+        if exercises.len() == 0 {
+            println!("+ !!! [No defined exercises]");
+            return Ok(true);
+        }
+
+        let selected_exercise = match Tui::select_exercise(&exercises) {
+            Some(exercise) => exercise,
+            None => return Ok(false),
+        };
+
+        println!("+ ... Selected '{}'.", selected_exercise.1);
+
+        let reps_default = match selected_exercise.0 {
+            5 => {
+                //Chinups
+                None
+            },
+            6 => {
+                // Clean
+                Some(1.0)
+            },
+            10 => {
+                // Snatch
+                Some(1.0)
+            },
+            _ => {
+                // Default
+                Some(5.0)
+            },
+        };
+
+        let reps_def_str = match reps_default {
+            None => String::new(),
+            Some(f) => format!(" ({})", f).to_string(),
+        };
+
+        let reps = match Tui::get_user_input_float(format!("+ Reps{}: ", reps_def_str).as_str(), reps_default) {
+            Some(f) => f,
+            None => return Ok(false),
+        };
+
+        let pr_weight = match self.db.select_exercise_weight_pr(selected_exercise.0, reps) {
+            Ok(w) => w,
+            Err(_) => {println!("[No such lifts found.]"); return Ok(true);}
+        };
+
+        println!("{}: {}x{}", selected_exercise.1, pr_weight, reps);
+        
+        Ok(true)
+    }
+
+    fn dialogue_add_exercise(&mut self) -> Result<bool, Error> {
+        let exercise_name = Tui::get_user_input("Exercise name: ");
+        if exercise_name == "q" || exercise_name == "c" {
+            return Ok(false);
+        }
+        _ = self.db.insert_exercise(exercise_name)?;
+        Ok(true)
     }
 
 }

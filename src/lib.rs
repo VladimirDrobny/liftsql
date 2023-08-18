@@ -48,7 +48,7 @@ impl Db {
         client.execute(create_db_query.as_str(), &[])?;
         client  = Db::connect(host, user, password, &Some(dbname))?;
         
-        client.execute("CREATE TABLE exercises (id SERIAL, name TEXT NOT NULL, PRIMARY KEY (id));", &[])?;
+        client.execute("CREATE TABLE exercises (id SERIAL, name TEXT NOT NULL UNIQUE, PRIMARY KEY (id));", &[])?;
         client.execute("CREATE TABLE sessions (id SERIAL, date DATE NOT NULL, PRIMARY KEY (id));", &[])?;
         client.execute("CREATE TABLE lifts (id SERIAL, exercise_id INT NOT NULL, session_id INT NOT NULL, weight REAL NOT NULL, reps REAL NOT NULL, sets REAL NOT NULL, PRIMARY KEY (id));", &[])?;
         //client.execute("CREATE TABLE comments (id SERIAL, session_id INT NOT NULL, comment_text_id INT NOT NULL, PRIMARY KEY (id));", &[])?;
@@ -90,6 +90,11 @@ impl Db {
         }
     }
 
+    pub fn insert_exercise(&mut self, exercise_name: String) -> Result<(), Error> {
+        self.client.execute("INSERT INTO exercises (name) VALUES ($1);", &[&exercise_name])?;
+        Ok(())
+    }
+
     pub fn select_exercise_name(&mut self, exercise_id: i32) -> Result<String, Error> {
         match self.client.query_one("SELECT name FROM exercises WHERE id=$1;", &[&exercise_id]) {
             Ok(row) => Ok(row.get(0)),
@@ -109,6 +114,15 @@ impl Db {
             Ok(row) => Ok(row.get(0)),
             Err(err) => Err(err),
         }
+    }
+
+    pub fn select_exercises(&mut self) -> Result<Vec<(i32, String)>, Error> {
+        let query = self.client.query("SELECT id, name FROM exercises;", &[])?;
+        let mut ret: Vec<(i32, String)> = Vec::new();
+        for exercise in query {
+            ret.push((exercise.get(0), exercise.get(1)));
+        }
+        Ok(ret)
     }
 
     pub fn transaction_start(&mut self) -> Result<Transaction, Error> {
