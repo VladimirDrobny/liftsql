@@ -296,7 +296,11 @@ impl Tui<'_> {
                     } else if inp == "q" || inp == "c" {
                         return Ok(false);
                     }
-                    // TODO Allow actual date as input, also HELP
+                    if let Some(date_literal) = Tui::parse_date(&inp, session_date.year()) {
+                        session_date = date_literal;
+                        break;
+                    }
+
                     println!("+ !!! Invalid input.");
                 },
             }
@@ -314,6 +318,20 @@ impl Tui<'_> {
         }
         Db::transaction_commit(transaction)?;
         Ok(true)
+    }
+
+    fn parse_date(inp: &String, base_year: i32) -> Option<NaiveDate> {
+        let inp_split: Vec<&str> = inp.split(".").collect();
+        if inp_split.len() < 2 || inp_split.len() > 3 {
+            return None;
+        }
+        let day = inp_split.get(0)?.parse::<u32>().ok()?;
+        let month = inp_split.get(1)?.parse::<u32>().ok()?;
+        let mut year = base_year;
+        if inp_split.len() == 3 {
+            year = inp_split.get(2)?.parse::<i32>().ok()?;
+        }
+        return NaiveDate::from_ymd_opt(year, month, day);
     }
 
     fn add_lifts(transaction: &mut Transaction, session_id: i32) -> Result<i32, Error> {
